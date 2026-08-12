@@ -1,0 +1,33 @@
+name: Announce release to Discord
+
+# Fires whenever a release goes live on this repo (gh release create, or publishing a
+# draft) - posts an embed to the updates channel so there's no separate step to remember
+# after cutting a release. Requires a DISCORD_WEBHOOK_URL repo secret (Settings -> Secrets
+# and variables -> Actions) pointing at the target channel's webhook.
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post release embed to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+        run: |
+          # Passed in via env (not interpolated directly into this script by GitHub's
+          # ${{ }} expansion) specifically so a release body containing quotes/backticks/
+          # etc. can't break out of the command - jq reads it safely as a plain string.
+          TITLE="${RELEASE_NAME:-$RELEASE_TAG}"
+          DESC="${RELEASE_BODY:-New build update}"
+          PAYLOAD=$(jq -n \
+            --arg title "$TITLE" \
+            --arg desc "$DESC" \
+            --arg url "$RELEASE_URL" \
+            '{embeds: [{title: $title, description: $desc, url: $url, color: 9647082, timestamp: (now | todate)}]}')
+          curl -sf -X POST "$DISCORD_WEBHOOK_URL" -H "Content-Type: application/json" -d "$PAYLOAD"
