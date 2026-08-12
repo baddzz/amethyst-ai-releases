@@ -20,8 +20,8 @@ jobs:
           RELEASE_BODY: ${{ github.event.release.body }}
           RELEASE_URL: ${{ github.event.release.html_url }}
         run: |
-          # Passed in via env (not interpolated directly into this script by GitHub's
-          # ${{ }} expansion) specifically so a release body containing quotes/backticks/
+          # Passed in via env (not interpolated directly into this script by GitHub's own
+          # template expansion) specifically so a release body containing quotes/backticks/
           # etc. can't break out of the command - jq reads it safely as a plain string.
           TITLE="${RELEASE_NAME:-$RELEASE_TAG}"
           DESC="${RELEASE_BODY:-New build update}"
