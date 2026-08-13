@@ -15,19 +15,16 @@ jobs:
       - name: Post release embed to Discord
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          RELEASE_NAME: ${{ github.event.release.name }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_BODY: ${{ github.event.release.body }}
           RELEASE_URL: ${{ github.event.release.html_url }}
         run: |
-          # Passed in via env (not interpolated directly into this script by GitHub's own
-          # template expansion) specifically so a release body containing quotes/backticks/
-          # etc. can't break out of the command - jq reads it safely as a plain string.
-          TITLE="${RELEASE_NAME:-$RELEASE_TAG}"
-          DESC="${RELEASE_BODY:-New build update}"
+          # Deliberately generic - just "new build's live, here's the version", never the
+          # actual release notes/changelog. Passed in via env (not interpolated directly
+          # into this script by GitHub's own template expansion) specifically so a tag
+          # containing quotes/backticks/etc. can't break out of the command - jq reads it
+          # safely as a plain string.
           PAYLOAD=$(jq -n \
-            --arg title "$TITLE" \
-            --arg desc "$DESC" \
+            --arg desc "Version $RELEASE_TAG" \
             --arg url "$RELEASE_URL" \
-            '{embeds: [{title: $title, description: $desc, url: $url, color: 9647082, timestamp: (now | todate)}]}')
+            '{embeds: [{title: "New Build Update", description: $desc, url: $url, color: 9647082, timestamp: (now | todate)}]}')
           curl -sf -X POST "$DISCORD_WEBHOOK_URL" -H "Content-Type: application/json" -d "$PAYLOAD"
